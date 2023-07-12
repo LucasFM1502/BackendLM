@@ -1,56 +1,61 @@
+const fs = require('fs');
+
 class ProductManager {
-  constructor() {
-    this.productos = [];
-    this.id = 1;
+  constructor(archivo) {
+    this.path = archivo;
   }
 
   addProduct(producto) {
-    if (!this.validarDatos(producto)) {
-      console.log("Error: Todos los campos del producto son obligatorios.");
-      return;
-    }
-
-    if (this.codigoDuplicado(producto.code)) {
-      console.log("Error: El código del producto ya existe.");
-      return;
-    }
-
-    producto.id = this.id;
-    this.id++;
-    this.productos.push(producto);
-  }
-
-  validarDatos(producto) {
-    return (
-      producto.nombre &&
-      producto.descripcion &&
-      producto.precio &&
-      producto.img &&
-      producto.code &&
-      producto.stock
-    );
-  }
-
-  codigoDuplicado(code) {
-    return this.productos.some((producto) => producto.code === code);
+    const productos = this.getProductsFromFile();
+    producto.id = this.generateNextId(productos);
+    productos.push(producto);
+    this.saveProductsToFile(productos);
   }
 
   getProducts() {
-    return this.productos;
+    return this.getProductsFromFile();
   }
 
   getProductById(id) {
-    const producto = this.productos.find((producto) => producto.id === id);
-    if (producto) {
-      return producto;
-    } else {
-      console.log("Error: Producto no encontrado.");
-      return ("Error: Producto no encontrado.")
+    const productos = this.getProductsFromFile();
+    return productos.find((producto) => producto.id === id);
+  }
+
+  updateProduct(id, updatedFields) {
+    const productos = this.getProductsFromFile();
+    const productoIndex = productos.findIndex((producto) => producto.id === id);
+    if (productoIndex !== -1) {
+      productos[productoIndex] = { ...productos[productoIndex], ...updatedFields };
+      this.saveProductsToFile(productos);
     }
+  }
+
+  deleteProduct(id) {
+    const productos = this.getProductsFromFile();
+    const updatedProductos = productos.filter((producto) => producto.id !== id);
+    this.saveProductsToFile(updatedProductos);
+  }
+
+  getProductsFromFile() {
+    try {
+      const data = fs.readFileSync(this.path, 'utf-8');
+      return JSON.parse(data);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  saveProductsToFile(productos) {
+    fs.writeFileSync(this.path, JSON.stringify(productos, null, 2), 'utf-8');
+  }
+
+  generateNextId(productos) {
+    const maxId = productos.reduce((max, producto) => (producto.id > max ? producto.id : max), 0);
+    return maxId + 1;
   }
 }
 
-const manager = new ProductManager()
+const manager = new ProductManager('./Productos.json')
 
 const producto1 = {
     nombre: "Mortal Kombat X",
@@ -65,4 +70,5 @@ manager.addProduct(producto1)
 console.log(manager.getProducts())
 console.log(manager.getProductById(1))
 console.log(manager.getProductById(2))
+
 
